@@ -2,262 +2,314 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChessSkill - Live</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess SaaS Arena</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css" integrity="sha384-q94+BZtLrkL1/ohfjR8c6L+A6qzNH9R2hBLwyoAfu3i/WCvQjzL2RQJ3uNHDISdU" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.9);
+            --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+            --primary: #2563eb; /* SaaS Blue */
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+        }
+
+        body {
+            font-family: 'Consolas', 'Courier New', monospace; /* User Preference */
+            background: linear-gradient(135deg, #f0f4ff 0%, #e2e8f0 100%);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Glassmorphism Container */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: var(--glass-shadow);
+            width: 100%;
+            max-width: 400px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        h1, h2, h3 { margin: 0 0 15px 0; font-weight: 600; }
+        p { color: var(--text-sub); margin-bottom: 25px; line-height: 1.5; }
+
+        /* SaaS Buttons */
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-family: 'Consolas', monospace;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .btn:active { transform: scale(0.98); }
+        .btn-secondary { background: white; color: var(--text-main); border: 1px solid #cbd5e1; }
+
+        /* Screens */
+        .screen { display: none; }
+        .active { display: block; }
+
+        /* Lobby Styles */
+        .lobby-list {
+            list-style: none;
+            padding: 0;
+            text-align: left;
+            margin-bottom: 20px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .lobby-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+        }
+        .lobby-item:last-child { border-bottom: none; }
+        .lobby-item.me { background: rgba(37, 99, 235, 0.1); font-weight: bold; }
+        
+        .prize-tag {
+            background: #dcfce7;
+            color: #166534;
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 20px;
+            font-weight: bold;
+            border: 1px solid #bbf7d0;
+        }
+
+        /* Input */
+        input[type="text"] {
+            width: 90%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-family: 'Consolas', monospace;
+            background: rgba(255,255,255,0.8);
+        }
+
+        /* Chess Board */
+        #board { margin: 0 auto 20px auto; width: 100%; }
+        .status-box { font-size: 12px; color: var(--text-sub); margin-top: 10px; }
+
+    </style>
 </head>
-<body class="flex flex-col h-[100dvh] bg-slate-50 font-['Inter']">
+<body>
 
-    <div id="screen-auth" class="fixed inset-0 z-50 flex items-center justify-center bg-white p-6">
-        <div class="w-full max-w-sm text-center">
-            <div class="mb-8">
-                <i class="fa-solid fa-chess-knight text-5xl text-blue-600"></i>
-                <h1 class="text-3xl font-bold text-slate-900 mt-4">ChessSkill</h1>
-                <p class="text-slate-500 mt-2">Competitive P2P Chess Platform</p>
-            </div>
-
-            <div id="google_btn_container" class="flex justify-center min-h-[44px]"></div>
-
-            <p class="text-xs text-gray-400 mt-8">
-                Secure Login by Google
-            </p>
-        </div>
+    <div id="screen-home" class="glass-panel screen active">
+        <h1>Monetize your<br>Chess Skills 💰</h1>
+        <p>Join the professional league. Automated matchmaking for high-stakes rapid chess.</p>
+        <button class="btn" onclick="enterLobby()">Enter Tournament</button>
     </div>
 
-    <header id="app-header" class="hidden h-16 bg-white border-b flex items-center justify-between px-4">
-        <div class="font-bold text-lg text-slate-800 flex items-center gap-2">
-            <i class="fa-solid fa-chess-knight text-blue-600"></i> ChessSkill
-        </div>
-        <div class="flex items-center gap-3">
-            <div class="flex items-center gap-2 bg-slate-100 pr-3 py-1 pl-1 rounded-full">
-                <img id="user-pic" src="" class="w-8 h-8 rounded-full">
-                <span id="user-name" class="text-sm font-bold text-slate-700 truncate max-w-[80px]">User</span>
-            </div>
-            <button onclick="app.auth.logout()" class="text-slate-400 hover:text-red-500"><i class="fa-solid fa-power-off"></i></button>
-        </div>
-    </header>
-
-    <main id="view-dashboard" class="hidden flex-1 p-4 overflow-y-auto">
-        <div class="max-w-md mx-auto space-y-6">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between">
-                <div>
-                    <p class="text-xs font-bold text-slate-400 uppercase">Rating</p>
-                    <p class="text-2xl font-bold text-slate-800">1200</p>
-                </div>
-                <div class="text-right">
-                    <p class="text-xs font-bold text-slate-400 uppercase">Pool</p>
-                    <p class="text-2xl font-bold text-green-600">₹<span id="pool-display">150</span></p>
-                </div>
-            </div>
-
-            <div class="space-y-3">
-                <button onclick="app.match.find()" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-bolt"></i> Play Now
-                </button>
-                <button onclick="alert('Payment Gateway Integration Required')" class="w-full py-4 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-plus text-green-600"></i> Add Funds
-                </button>
-            </div>
-            
-            <div class="bg-blue-50 p-4 rounded-xl text-xs text-blue-800 border border-blue-100">
-                <strong>Tip:</strong> Open this link on another device or tab to test multiplayer pairing.
-            </div>
-        </div>
-    </main>
-
-    <div id="view-game" class="hidden h-full flex flex-col max-w-md mx-auto p-2">
-        <div class="flex justify-between items-center mb-2 px-2">
-            <span class="font-bold text-slate-600 text-sm"><i class="fa-solid fa-user text-red-500 mr-2"></i>Opponent</span>
-            <span class="bg-slate-200 text-xs px-2 py-1 rounded font-mono font-bold">10:00</span>
-        </div>
+    <div id="screen-lobby" class="glass-panel screen">
+        <h2>Tournament #8492</h2>
+        <div class="prize-tag">Prize Pool: ₹10,000</div>
         
-        <div id="board" class="w-full aspect-square bg-slate-300 rounded shadow-xl touch-none"></div>
+        <div class="lobby-list" id="lobby-list">
+            </div>
         
-        <div class="flex justify-between items-center mt-2 px-2 mb-4">
-            <span class="font-bold text-slate-600 text-sm"><i class="fa-solid fa-user text-blue-500 mr-2"></i>You</span>
-            <span class="bg-slate-200 text-xs px-2 py-1 rounded font-mono font-bold">10:00</span>
-        </div>
-
-        <button onclick="app.game.quit()" class="w-full py-3 bg-red-50 text-red-600 font-bold rounded-xl">Resign Game</button>
+        <p style="font-size: 12px;">Waiting for players... (8/8) Ready.</p>
+        <button class="btn" onclick="showPayment()">Play Match</button>
     </div>
 
-    <div id="overlay-loading" class="hidden fixed inset-0 z-[60] bg-white/90 flex flex-col items-center justify-center">
-        <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <h2 class="font-bold text-xl">Finding Match...</h2>
-        <button onclick="app.match.cancel()" class="mt-8 text-sm font-bold text-slate-500">Cancel</button>
+    <div id="screen-payment" class="glass-panel screen">
+        <h2>Confirm Entry</h2>
+        <p>Secure your spot in the bracket. A small entry fee is required to compete for the ₹10,000 prize pool.</p>
+        
+        <div style="background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 12px; color: #64748b;">Entry Fee</div>
+            <div style="font-size: 24px; font-weight: bold;">₹10.00</div>
+        </div>
+
+        <input type="text" id="upi-id" placeholder="Enter UPI ID (e.g. user@oksbi)">
+        <button class="btn" onclick="processPayment()">Pay & Start</button>
+        <button class="btn btn-secondary" onclick="goBack('screen-lobby')" style="margin-top: 10px;">Cancel</button>
+    </div>
+
+    <div id="screen-game" class="glass-panel screen">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+            <span id="player-white">You (White)</span>
+            <span id="player-black">Opponent</span>
+        </div>
+        <div id="board" style="width: 300px"></div>
+        <div class="status-box" id="status">White to move</div>
     </div>
 
     <script>
-        /* ----------------------------------------------------
-           YOUR GOOGLE CLIENT ID IS INSERTED BELOW
-           ---------------------------------------------------- */
-        const GOOGLE_CLIENT_ID = "280287916046-j27v4vuthrges1jglndsc2kgef63n4bc.apps.googleusercontent.com"; 
+        // --- Game State & Data ---
+        let game = null;
+        let board = null;
+        const currentUser = "You (Milind)"; // Mock current user
         
-        const DB_KEY = 'chess_v5_';
+        // Mock Backend Data: Random Telegram Usernames
+        const mockUsers = [
+            "@crypto_king", "@chess_master_99", "@dev_guy", 
+            "@design_guru", "@startup_founder", "@ai_enthusiast", 
+            "@pixel_art"
+        ];
 
-        // --- APP LOGIC ---
-        const app = {
-            user: null,
+        // --- Navigation Functions ---
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function goBack(screenId) {
+            switchScreen(screenId);
+        }
+
+        // --- Logic: Enter Lobby ---
+        function enterLobby() {
+            const list = document.getElementById('lobby-list');
+            list.innerHTML = ''; // Clear list
+
+            // Add random users
+            mockUsers.forEach(user => {
+                list.innerHTML += `<li class="lobby-item"><span>${user}</span> <span style="color:#10b981">Online</span></li>`;
+            });
+
+            // Add Current User
+            list.innerHTML += `<li class="lobby-item me"><span>${currentUser}</span> <span>You</span></li>`;
+
+            switchScreen('screen-lobby');
+        }
+
+        // --- Logic: Show Payment ---
+        function showPayment() {
+            switchScreen('screen-payment');
+        }
+
+        // --- Logic: Process Payment & Start Game ---
+        function processPayment() {
+            const upi = document.getElementById('upi-id').value;
+            if(!upi.includes('@')) {
+                alert("Please enter a valid UPI ID to proceed.");
+                return;
+            }
             
-            init: () => {
-                // Initialize Google Sign-In Button
-                window.onload = function () {
-                    if(typeof google !== 'undefined') {
-                        google.accounts.id.initialize({
-                            client_id: GOOGLE_CLIENT_ID,
-                            callback: (response) => {
-                                // Decode JWT
-                                const payload = JSON.parse(atob(response.credential.split('.')[1]));
-                                app.auth.login(payload);
-                            }
-                        });
-                        google.accounts.id.renderButton(
-                            document.getElementById("google_btn_container"),
-                            { theme: "outline", size: "large", width: "250" } 
-                        );
-                    }
-                };
+            // Simulate API Call delay
+            const btn = document.querySelector('#screen-payment .btn');
+            const originalText = btn.innerText;
+            btn.innerText = "Processing...";
+            
+            setTimeout(() => {
+                btn.innerText = originalText;
+                startGame();
+            }, 1500);
+        }
 
-                // Check Session
-                const saved = localStorage.getItem(DB_KEY + 'user');
-                if (saved) {
-                    app.user = JSON.parse(saved);
-                    app.ui.showDashboard();
-                }
+        // --- Logic: Chess Game (Integration) ---
+        function startGame() {
+            switchScreen('screen-game');
+            
+            // Initialize Chess Logic
+            game = new Chess();
 
-                // Multiplayer Listener
-                window.addEventListener('storage', (e) => {
-                    if (e.key && e.key.startsWith(DB_KEY + 'game_')) app.game.onRemoteMove(e.newValue);
-                    if (e.key === DB_KEY + 'match_' + app.user?.sub) app.match.onFound(JSON.parse(e.newValue));
-                });
-            },
-
-            auth: {
-                login: (googleUser) => {
-                    app.user = googleUser;
-                    localStorage.setItem(DB_KEY + 'user', JSON.stringify(app.user));
-                    app.ui.showDashboard();
-                },
-                logout: () => {
-                    localStorage.removeItem(DB_KEY + 'user');
-                    location.reload();
-                }
-            },
-
-            ui: {
-                showDashboard: () => {
-                    document.getElementById('screen-auth').classList.add('hidden');
-                    document.getElementById('app-header').classList.remove('hidden');
-                    document.getElementById('app-header').classList.add('flex');
-                    document.getElementById('view-dashboard').classList.remove('hidden');
-                    
-                    document.getElementById('user-name').innerText = app.user.name;
-                    document.getElementById('user-pic').src = app.user.picture;
-                },
-                showGame: () => {
-                    document.getElementById('view-dashboard').classList.add('hidden');
-                    document.getElementById('view-game').classList.remove('hidden');
-                    document.getElementById('overlay-loading').classList.add('hidden');
-                },
-                reset: () => {
-                    document.getElementById('view-game').classList.add('hidden');
-                    document.getElementById('view-dashboard').classList.remove('hidden');
-                    if(app.game.board) app.game.board.destroy();
-                }
-            },
-
-            match: {
-                timer: null,
-                find: () => {
-                    document.getElementById('overlay-loading').classList.remove('hidden');
-                    // Look for open lobby not owned by me
-                    const openKey = Object.keys(localStorage).find(k => k.startsWith(DB_KEY + 'lobby_') && !k.includes(app.user.sub));
-                    
-                    if (openKey) {
-                        const lobby = JSON.parse(localStorage.getItem(openKey));
-                        app.match.join(lobby);
-                    } else {
-                        app.match.create();
-                    }
-                },
-                create: () => {
-                    const lobbyId = DB_KEY + 'lobby_' + app.user.sub;
-                    localStorage.setItem(lobbyId, JSON.stringify({ host: app.user.sub, name: app.user.name }));
-                    app.match.timer = setInterval(() => {
-                        if (!localStorage.getItem(lobbyId)) { 
-                            clearInterval(app.match.timer);
-                        }
-                    }, 1000);
-                },
-                join: (lobby) => {
-                    const gameId = DB_KEY + 'game_' + Date.now();
-                    localStorage.setItem(DB_KEY + 'match_' + lobby.host, JSON.stringify({ gameId, opp: app.user.name }));
-                    localStorage.removeItem(DB_KEY + 'lobby_' + lobby.host);
-                    app.game.start(gameId, 'black');
-                },
-                onFound: (data) => {
-                    localStorage.removeItem(DB_KEY + 'match_' + app.user.sub);
-                    app.game.start(data.gameId, 'white');
-                },
-                cancel: () => {
-                    document.getElementById('overlay-loading').classList.add('hidden');
-                    clearInterval(app.match.timer);
-                    localStorage.removeItem(DB_KEY + 'lobby_' + app.user.sub);
-                }
-            },
-
-            game: {
-                chess: null, board: null, id: null,
-                start: (id, color) => {
-                    app.game.id = id;
-                    app.game.chess = new Chess();
-                    app.ui.showGame();
-                    setTimeout(() => {
-                        app.game.board = Chessboard('board', {
-                            draggable: true,
-                            position: 'start',
-                            orientation: color,
-                            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
-                            onDragStart: (source, piece) => {
-                                if (app.game.chess.game_over()) return false;
-                                if ((app.game.chess.turn() === 'w' && piece.search(/^b/) !== -1) ||
-                                    (app.game.chess.turn() === 'b' && piece.search(/^w/) !== -1)) return false;
-                                if (app.game.chess.turn().charAt(0) !== color.charAt(0)) return false;
-                            },
-                            onDrop: (source, target) => {
-                                const move = app.game.chess.move({ from: source, to: target, promotion: 'q' });
-                                if (!move) return 'snapback';
-                                app.game.broadcast();
-                            }
-                        });
-                        $(window).resize(app.game.board.resize);
-                    }, 100);
-                },
-                broadcast: () => {
-                    localStorage.setItem(app.game.id, JSON.stringify({ fen: app.game.chess.fen() }));
-                },
-                onRemoteMove: (val) => {
-                    if (!val) return;
-                    const fen = JSON.parse(val).fen;
-                    if (fen !== app.game.chess.fen()) {
-                        app.game.chess.load(fen);
-                        app.game.board.position(fen);
-                    }
-                },
-                quit: () => {
-                    if(confirm('Quit?')) app.ui.reset();
+            function onDragStart (source, piece, position, orientation) {
+                // do not pick up pieces if the game is over
+                if (game.game_over()) return false;
+                // only pick up pieces for the side to move
+                if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+                    (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+                    return false;
                 }
             }
-        };
 
-        app.init();
+            function onDrop (source, target) {
+                // see if the move is legal
+                var move = game.move({
+                    from: source,
+                    to: target,
+                    promotion: 'q' // NOTE: always promote to a queen for simplicity
+                });
+
+                // illegal move
+                if (move === null) return 'snapback';
+
+                updateStatus();
+                
+                // Simulate Opponent Move (Random) after 1 second
+                if (!game.game_over()) {
+                    window.setTimeout(makeRandomMove, 1000);
+                }
+            }
+
+            function onSnapEnd () {
+                board.position(game.fen());
+            }
+
+            function updateStatus () {
+                var status = '';
+                var moveColor = 'White';
+                if (game.turn() === 'b') {
+                    moveColor = 'Black';
+                }
+
+                if (game.in_checkmate()) {
+                    status = 'Game over, ' + moveColor + ' is in checkmate.';
+                    alert("Game Over! " + moveColor + " lost.");
+                } else if (game.in_draw()) {
+                    status = 'Game over, drawn position';
+                } else {
+                    status = moveColor + ' to move';
+                    if (game.in_check()) {
+                        status += ', ' + moveColor + ' is in check';
+                    }
+                }
+                document.getElementById('status').innerText = status;
+            }
+
+            function makeRandomMove () {
+                var possibleMoves = game.moves();
+                // game over
+                if (possibleMoves.length === 0) return;
+
+                var randomIdx = Math.floor(Math.random() * possibleMoves.length);
+                game.move(possibleMoves[randomIdx]);
+                board.position(game.fen());
+                updateStatus();
+            }
+
+            // Initialize Board
+            var config = {
+                draggable: true,
+                position: 'start',
+                onDragStart: onDragStart,
+                onDrop: onDrop,
+                onSnapEnd: onSnapEnd
+            };
+            board = Chessboard('board', config);
+            
+            // Fix board width on mobile
+            $(window).resize(board.resize);
+        }
     </script>
 </body>
 </html>
