@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChessSkill - Swiss Tournament Platform</title>
+    <title>ChessSkill - Peer-to-Peer</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -21,811 +21,562 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background: radial-gradient(circle at top left, #f3f4f6, #d1d5db);
+            background: #f3f4f6;
             color: #1f2937;
             height: 100vh;
-            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* Glassmorphism */
+        /* Glass / UI Helpers */
         .glass-panel {
-            background: rgba(255, 255, 255, 0.75);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
-        }
-        
-        .glass-card {
-            background: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(8px);
             border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
-            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
 
-        .glass-card:hover {
-            background: rgba(255, 255, 255, 0.8);
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.5); border-radius: 3px; }
-
-        /* Floating Back Button */
-        .floating-back {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            z-index: 50;
-            display: none; /* Hidden by default */
-        }
-
-        /* Board Styling */
-        #myBoard {
+        /* Board Container - Fixes the "Half Cut" issue */
+        #boardContainer {
             width: 100%;
-            max-width: 480px;
+            max-width: 500px; /* Limits max size on desktop */
+            aspect-ratio: 1/1;
             margin: 0 auto;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            border-radius: 4px;
-            overflow: hidden;
         }
 
-        /* Loading Spinner */
-        .spinner {
-            border: 3px solid rgba(0, 0, 0, 0.1);
-            border-radius: 50%;
-            border-top: 3px solid #3b82f6;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
+        /* Responsive Fixes */
+        .game-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            height: 100%;
         }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        @media (min-width: 1024px) {
+            .game-grid {
+                grid-template-columns: 2fr 1fr; /* Board gets 2/3 space */
+                align-items: start;
+            }
+        }
+
+        /* Scrollbars */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
     </style>
 </head>
-<body>
+<body class="bg-gray-100">
 
-    <button id="globalBackBtn" onclick="app.router.back()" class="floating-back glass-panel px-4 py-2 rounded-full flex items-center gap-2 text-gray-700 hover:text-blue-600 hover:bg-white transition shadow-lg">
-        <i class="fa-solid fa-arrow-left"></i>
-        <span class="font-medium text-sm">Back</span>
+    <button id="globalBackBtn" onclick="app.router.back()" class="fixed top-4 left-4 z-50 bg-white px-4 py-2 rounded-full shadow-lg text-gray-700 hover:text-blue-600 hidden flex items-center gap-2 border border-gray-200">
+        <i class="fa-solid fa-arrow-left"></i> Back
     </button>
 
-    <div id="authModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-        <div class="glass-panel w-full max-w-sm p-8 rounded-2xl shadow-2xl relative text-center">
-            <div class="w-16 h-16 bg-gradient-to-br from-indigo-600 to-blue-500 rounded-xl mx-auto flex items-center justify-center text-white text-3xl shadow-lg mb-4">
+    <div id="authModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-sm p-8 rounded-2xl shadow-2xl text-center mx-4">
+            <div class="w-16 h-16 bg-blue-600 rounded-xl mx-auto flex items-center justify-center text-white text-3xl shadow-lg mb-4">
                 <i class="fa-solid fa-chess"></i>
             </div>
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Welcome Player</h2>
-            <p class="text-gray-500 mb-6 text-sm">Enter a username to join the tournament network.</p>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">ChessSkill</h2>
+            <p class="text-gray-500 mb-6 text-sm">Enter a username to start.</p>
             
             <form id="authForm" class="space-y-4">
-                <input type="text" id="usernameInput" required class="w-full px-4 py-3 rounded-xl bg-white/70 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition text-center font-bold text-gray-800 placeholder-gray-400" placeholder="Username">
-                <button type="submit" class="w-full bg-slate-800 text-white py-3 rounded-xl hover:bg-slate-700 transition font-medium shadow-lg shadow-slate-500/30">
-                    Start Playing
+                <input type="text" id="usernameInput" required class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center font-bold" placeholder="Username">
+                <button type="submit" class="w-full bg-slate-900 text-white py-3 rounded-xl hover:bg-slate-800 transition font-medium shadow-lg">
+                    Start
                 </button>
             </form>
         </div>
     </div>
 
-    <div id="paymentModal" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm hidden">
-        <div class="glass-panel w-full max-w-sm p-6 rounded-2xl shadow-2xl relative">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-gray-800">Boost Prize Pool</h3>
-                <button onclick="document.getElementById('paymentModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
+    <div id="paymentModal" class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm hidden p-4">
+        <div class="bg-white w-full max-w-sm p-6 rounded-2xl shadow-2xl relative">
+            <button onclick="document.getElementById('paymentModal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Boost Prize Pool</h3>
             
             <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-6">
                 <div class="flex justify-between items-end mb-1">
                     <span class="text-sm text-blue-800 font-medium">Entry Fee</span>
                     <span class="text-2xl font-bold text-blue-900">₹10.00</span>
                 </div>
-                <p class="text-xs text-blue-600/80">This amount will be added to the tournament prize pool.</p>
             </div>
 
             <form id="paymentForm" class="space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">UPI ID</label>
-                    <input type="text" id="upiInput" required class="w-full px-4 py-2.5 rounded-lg bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500/50 transition font-mono text-sm" placeholder="username@okhdfcbank">
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">UPI ID</label>
+                    <input type="text" id="upiInput" required class="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500 outline-none" placeholder="user@upi">
                 </div>
-                <button type="submit" id="payBtn" class="w-full bg-green-600 text-white py-3 rounded-xl hover:bg-green-700 transition font-medium shadow-lg shadow-green-500/30 flex justify-center items-center gap-2">
-                    <span>Pay Securely</span>
-                    <i class="fa-solid fa-lock text-xs opacity-70"></i>
+                <button type="submit" id="payBtn" class="w-full bg-green-600 text-white py-3 rounded-xl hover:bg-green-700 font-medium shadow-lg">
+                    Pay Securely
                 </button>
             </form>
-            <p class="text-[10px] text-center text-gray-400 mt-4 uppercase">Test Mode: No real money is deducted</p>
         </div>
     </div>
 
-    <div id="appContainer" class="flex flex-col h-full max-w-7xl mx-auto md:px-4 hidden">
+    <header id="appHeader" class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 md:px-8 hidden">
+        <div class="flex items-center gap-3 pl-12 md:pl-0"> 
+            <i class="fa-solid fa-chess-knight text-2xl text-slate-800"></i>
+            <h1 class="font-bold text-lg text-gray-800">ChessSkill</h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-full">
+                <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span id="headerUsername" class="text-sm font-bold text-gray-700">Guest</span>
+            </div>
+            <button onclick="app.ui.logout()" class="text-xs text-red-500 hover:underline">Logout</button>
+        </div>
+    </header>
+
+    <main id="appContent" class="flex-1 overflow-y-auto p-4 md:p-8 hidden max-w-6xl mx-auto w-full">
         
-        <header class="h-20 flex items-center justify-between px-6 md:px-0 z-10">
-            <div class="flex items-center gap-3 pl-12 md:pl-0"> 
-                <div class="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center text-white shadow-md">
-                    <i class="fa-solid fa-chess-knight"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-lg leading-tight text-gray-800">ChessSkill</h1>
-                    <p class="text-xs text-gray-500">Swiss Format • Beta</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-4">
-                <div class="glass-panel px-4 py-2 rounded-full flex items-center gap-3 shadow-sm">
-                    <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                    <span id="headerUsername" class="text-sm font-bold text-gray-700">Guest</span>
-                </div>
-            </div>
-        </header>
-
-        <main class="flex-1 overflow-y-auto p-4 md:p-0 relative pb-20" id="mainContent">
-            
-            <div id="view-dashboard" class="view-section animate-fade-in py-6">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div class="lg:col-span-2 space-y-6">
-                        <div class="flex justify-between items-center">
-                            <h2 class="text-2xl font-bold text-gray-800">Live Tournaments</h2>
-                            <button onclick="app.tournament.create()" class="text-sm bg-white hover:bg-gray-50 text-blue-600 px-4 py-2 rounded-lg border border-gray-200 shadow-sm transition">
-                                + Create Lobby
-                            </button>
-                        </div>
-
-                        <div id="lobbyList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            </div>
-                    </div>
-
-                    <div class="space-y-6">
-                        <div class="glass-panel p-6 rounded-2xl">
-                            <h3 class="font-bold text-gray-800 mb-4">Your Stats</h3>
-                            <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-200/50">
-                                <span class="text-gray-500">Rating</span>
-                                <span class="text-xl font-bold font-mono">1200</span>
-                            </div>
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-gray-500">Matches Won</span>
-                                <span class="font-bold text-green-600" id="statsWins">0</span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-500">Matches Played</span>
-                                <span class="font-bold text-gray-800" id="statsPlayed">0</span>
-                            </div>
-                        </div>
-                        
-                        <div class="p-4 bg-yellow-50 border border-yellow-100 rounded-xl text-xs text-yellow-800">
-                            <p class="font-bold mb-1"><i class="fa-solid fa-lightbulb"></i> Multiplayer Tip</p>
-                            <p>Open this page in a second tab to play against yourself in real-time!</p>
-                        </div>
-                    </div>
-                </div>
+        <div id="view-dashboard" class="view-section">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Active Tournaments</h2>
+                <button onclick="app.tournament.create()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow-md">
+                    + Create New
+                </button>
             </div>
 
-            <div id="view-tournament" class="view-section hidden py-6">
-                <div class="glass-panel p-6 rounded-2xl mb-6 relative overflow-hidden">
-                    <div class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
-                        <div>
-                            <div class="flex items-center gap-3 mb-1">
-                                <h2 class="text-3xl font-bold text-gray-800">Swiss Cup #<span id="tViewId"></span></h2>
-                                <span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full uppercase" id="tViewStatus">Open</span>
-                            </div>
-                            <p class="text-gray-500">3 Rounds • 10 min Rapid • Everyone Plays</p>
-                        </div>
-                        
-                        <div class="text-center md:text-right bg-white/40 p-4 rounded-xl border border-white/50 w-full md:w-auto">
-                            <p class="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Current Prize Pool</p>
-                            <h3 class="text-4xl font-bold text-green-600 mb-3" id="tPrizePool">₹0</h3>
-                            <button onclick="document.getElementById('paymentModal').classList.remove('hidden')" class="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white text-sm px-6 py-2.5 rounded-lg shadow-lg shadow-green-500/20 transition flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-plus-circle"></i> Bet ₹10 to Boost Pool
-                            </button>
-                        </div>
-                    </div>
+            <div id="lobbyList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 </div>
+        </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2">
-                        <div class="glass-panel rounded-xl overflow-hidden">
-                            <div class="p-4 border-b border-gray-200/50 flex justify-between items-center bg-white/30">
-                                <h3 class="font-bold text-gray-800">Standings</h3>
-                                <span class="text-xs text-gray-500">Win=1 • Draw=0.5 • Loss=0</span>
-                            </div>
-                            <table class="w-full text-sm">
-                                <thead class="bg-gray-50/50 text-gray-500">
-                                    <tr>
-                                        <th class="px-4 py-3 text-left">#</th>
-                                        <th class="px-4 py-3 text-left">Player</th>
-                                        <th class="px-4 py-3 text-center">Played</th>
-                                        <th class="px-4 py-3 text-right">Score</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tStandingsBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-
+        <div id="view-tournament" class="view-section hidden">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                     <div>
-                        <div class="glass-card p-6 rounded-xl text-center">
-                            <div id="playActionArea">
-                                </div>
-                        </div>
-                        
-                        <div class="mt-4 glass-panel p-4 rounded-xl">
-                            <h4 class="font-bold text-sm text-gray-700 mb-3">Live Pairings</h4>
-                            <div id="pairingList" class="space-y-2 text-sm">
-                                <div class="text-gray-400 text-center italic">Waiting for round to start...</div>
-                            </div>
-                        </div>
+                        <h2 class="text-2xl font-bold text-gray-800">Tournament #<span id="tViewId"></span></h2>
+                        <span class="text-sm text-green-600 font-bold bg-green-50 px-2 py-1 rounded">Status: Open</span>
+                    </div>
+                    <div class="text-center md:text-right">
+                        <p class="text-xs text-gray-500 uppercase font-bold">Prize Pool</p>
+                        <h3 class="text-3xl font-bold text-green-600 mb-2" id="tPrizePool">₹0</h3>
+                        <button onclick="document.getElementById('paymentModal').classList.remove('hidden')" class="bg-green-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-green-700 shadow-sm">
+                            Bet ₹10
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <div id="view-game" class="view-section hidden h-full flex flex-col justify-center py-2">
-                <div class="max-w-4xl mx-auto w-full grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                    
-                    <div class="lg:col-span-2">
-                        <div class="glass-panel p-1 rounded-xl shadow-2xl bg-white/80">
-                            <div class="flex justify-between items-center p-3 border-b border-gray-100">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold">
-                                        <i class="fa-solid fa-user"></i>
-                                    </div>
-                                    <div>
-                                        <p class="font-bold text-sm text-gray-800" id="gameOpponentName">Opponent</p>
-                                        <p class="text-xs text-gray-500" id="gameOpponentStatus">Online</p>
-                                    </div>
-                                </div>
-                                <div class="bg-gray-100 px-3 py-1 rounded-md font-mono text-sm font-bold text-gray-700">10:00</div>
-                            </div>
-                            
-                            <div id="myBoard" class="w-full"></div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="p-4 border-b border-gray-100 font-bold text-gray-700">Players & Standings</div>
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 text-gray-500">
+                            <tr>
+                                <th class="px-4 py-3 text-left">Player</th>
+                                <th class="px-4 py-3 text-right">Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tStandingsBody"></tbody>
+                    </table>
+                    <div id="emptyState" class="p-8 text-center text-gray-400 hidden">Waiting for players to join...</div>
+                </div>
 
-                            <div class="flex justify-between items-center p-3 border-t border-gray-100">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
-                                        <i class="fa-solid fa-user"></i>
-                                    </div>
-                                    <div>
-                                        <p class="font-bold text-sm text-gray-800" id="gameSelfName">You</p>
-                                        <p class="text-xs text-gray-500">White</p>
-                                    </div>
-                                </div>
-                                <div class="bg-gray-100 px-3 py-1 rounded-md font-mono text-sm font-bold text-gray-700">10:00</div>
-                            </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 h-fit">
+                    <h4 class="font-bold text-gray-800 mb-4">Your Next Match</h4>
+                    <button id="findMatchBtn" onclick="app.game.findMatch()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg flex justify-center items-center gap-2">
+                        <span>Find Opponent</span>
+                    </button>
+                    <p class="text-xs text-gray-500 mt-4 text-center">
+                        Tip: Open this page in a second tab to play against yourself.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-game" class="view-section hidden h-full">
+            <div class="game-grid">
+                
+                <div class="flex flex-col items-center justify-center">
+                    <div class="w-full max-w-[500px] bg-white p-2 rounded-xl shadow-xl border border-gray-200">
+                        <div class="flex justify-between items-center p-2 mb-2 border-b border-gray-100">
+                            <span class="font-bold text-gray-700 flex items-center gap-2">
+                                <i class="fa-solid fa-user text-red-500"></i> <span id="gameOpponentName">Opponent</span>
+                            </span>
+                            <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-mono">10:00</span>
                         </div>
-                    </div>
 
-                    <div class="glass-card p-4 rounded-xl flex flex-col h-[500px]">
-                        <h3 class="font-bold text-gray-700 border-b border-gray-200 pb-2 mb-2">Move History</h3>
-                        <div id="pgnContainer" class="flex-1 overflow-y-auto text-sm font-mono space-y-1 mb-4 pr-2 text-gray-600">
-                            </div>
-                        
-                        <div class="grid grid-cols-2 gap-3 mt-auto">
-                            <button onclick="alert('Draw offered')" class="bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-lg text-sm font-medium transition">
-                                Offer Draw
-                            </button>
-                            <button onclick="app.game.resign()" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 py-2 rounded-lg text-sm font-medium transition">
-                                Resign
-                            </button>
+                        <div id="boardContainer">
+                            <div id="myBoard" class="w-full h-full"></div>
+                        </div>
+
+                        <div class="flex justify-between items-center p-2 mt-2 border-t border-gray-100">
+                            <span class="font-bold text-gray-700 flex items-center gap-2">
+                                <i class="fa-solid fa-user text-blue-500"></i> <span id="gameSelfName">You</span>
+                            </span>
+                            <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-mono">10:00</span>
                         </div>
                     </div>
                 </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col h-[400px] lg:h-[600px]">
+                    <div class="p-3 border-b border-gray-200 font-bold text-gray-700">Match Log</div>
+                    <div id="pgnContainer" class="flex-1 overflow-y-auto p-3 text-sm font-mono space-y-1 bg-gray-50">
+                        </div>
+                    <div class="p-3 border-t border-gray-200 grid grid-cols-2 gap-2">
+                        <button onclick="alert('Draw offered')" class="bg-gray-200 text-gray-700 py-2 rounded hover:bg-gray-300">Draw</button>
+                        <button onclick="app.game.resign()" class="bg-red-100 text-red-600 py-2 rounded hover:bg-red-200">Resign</button>
+                    </div>
+                </div>
             </div>
+        </div>
 
-        </main>
-    </div>
+    </main>
 
-    <div id="matchFoundOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm hidden">
-        <div class="glass-panel p-8 rounded-2xl text-center shadow-2xl animate-ring relative">
+    <div id="matchOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden">
+        <div class="bg-white p-8 rounded-2xl text-center shadow-2xl animate-bounce-in">
             <h2 class="text-2xl font-bold text-gray-800 mb-2">Match Found!</h2>
-            <p class="text-gray-600 mb-6">Starting game against <span id="overlayOpponent" class="font-bold">...</span></p>
-            <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p class="text-gray-600 mb-6">Starting game vs <span id="overlayOpponent" class="font-bold">...</span></p>
+            <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
         </div>
     </div>
 
     <script>
-        // --- DATA STORE & SYNC ---
+        // --- 1. STORAGE WRAPPER (Versioning to fix Auth) ---
+        const DB_PREFIX = 'chess_v2_'; // Changed prefix to force reset
         const Store = {
             get: (key, def) => {
-                try { return JSON.parse(localStorage.getItem('chess_' + key)) || def; } 
+                try { return JSON.parse(localStorage.getItem(DB_PREFIX + key)) || def; } 
                 catch { return def; }
             },
-            set: (key, val) => {
-                localStorage.setItem('chess_' + key, JSON.stringify(val));
-            }
+            set: (key, val) => localStorage.setItem(DB_PREFIX + key, JSON.stringify(val)),
+            remove: (key) => localStorage.removeItem(DB_PREFIX + key)
         };
 
-        // --- APP LOGIC ---
+        // --- 2. MAIN APP ---
         const app = {
             user: null,
-            currentGameId: null,
 
             init: () => {
-                // Listen for storage events (Cross-Tab Sync)
-                window.addEventListener('storage', (e) => {
-                    if (e.key && e.key.startsWith('chess_game_')) {
-                        app.game.syncFromStorage(e.key, e.newValue);
-                    }
-                    if (e.key === 'chess_lobbies') {
-                        // Refresh lobby view if open
-                        if (app.router.current === 'tournament') app.tournament.renderDetails();
-                        if (app.router.current === 'dashboard') app.tournament.renderList();
-                    }
-                });
-
-                // Check Auth
+                // Check for existing session
                 const u = Store.get('currentUser', null);
                 if (u) {
                     app.user = u;
                     app.ui.enter();
+                } else {
+                    document.getElementById('authModal').classList.remove('hidden');
                 }
 
-                // Auth Handler
+                // Auth Listener
                 document.getElementById('authForm').addEventListener('submit', (e) => {
                     e.preventDefault();
                     const name = document.getElementById('usernameInput').value.trim();
-                    if (!name) return;
+                    if(!name) return;
                     
-                    const newUser = { id: 'u_' + Date.now(), name: name, wins: 0, played: 0 };
+                    const newUser = { id: 'u_'+Date.now(), name: name };
                     Store.set('currentUser', newUser);
                     app.user = newUser;
                     app.ui.enter();
                 });
 
-                // Payment Handler
+                // Payment Listener
                 document.getElementById('paymentForm').addEventListener('submit', (e) => {
                     e.preventDefault();
                     app.tournament.processPayment();
+                });
+
+                // Sync Listener (Multi-tab)
+                window.addEventListener('storage', (e) => {
+                    if(e.key && e.key.includes('chess_v2_lobbies')) {
+                        if(app.router.current === 'dashboard') app.tournament.renderList();
+                        if(app.router.current === 'tournament') app.tournament.renderDetails();
+                    }
+                    if(e.key && e.key.includes('game_')) {
+                        app.game.sync(e.key, e.newValue);
+                    }
                 });
             },
 
             ui: {
                 enter: () => {
                     document.getElementById('authModal').classList.add('hidden');
-                    document.getElementById('appContainer').classList.remove('hidden');
+                    document.getElementById('appHeader').classList.remove('hidden');
+                    document.getElementById('appContent').classList.remove('hidden');
                     document.getElementById('headerUsername').innerText = app.user.name;
-                    document.getElementById('statsWins').innerText = app.user.wins;
-                    document.getElementById('statsPlayed').innerText = app.user.played;
                     app.router.navigate('dashboard');
+                },
+                logout: () => {
+                    Store.remove('currentUser');
+                    location.reload();
                 }
             },
 
             router: {
-                history: [],
                 current: 'dashboard',
-                
-                navigate: (viewId) => {
-                    // Hide all views
+                history: [],
+                navigate: (view) => {
                     document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-                    // Show target
-                    document.getElementById('view-' + viewId).classList.remove('hidden');
-                    
-                    app.router.history.push(viewId);
-                    app.router.current = viewId;
+                    document.getElementById('view-' + view).classList.remove('hidden');
+                    app.router.current = view;
+                    app.router.history.push(view);
 
-                    // Toggle Back Button
-                    const backBtn = document.getElementById('globalBackBtn');
-                    if (viewId === 'dashboard') backBtn.style.display = 'none';
-                    else backBtn.style.display = 'flex';
+                    // Back button logic
+                    const btn = document.getElementById('globalBackBtn');
+                    btn.style.display = view === 'dashboard' ? 'none' : 'flex';
 
-                    // Trigger Renderers
-                    if (viewId === 'dashboard') app.tournament.renderList();
+                    if(view === 'dashboard') app.tournament.renderList();
                 },
-                
                 back: () => {
-                    if (app.router.history.length > 1) {
-                        app.router.history.pop(); // remove current
-                        const prev = app.router.history.pop(); // get prev
+                    if(app.router.history.length > 1) {
+                        app.router.history.pop();
+                        const prev = app.router.history.pop();
                         app.router.navigate(prev);
                     }
                 }
             },
 
-            // --- TOURNAMENT MANAGER (SWISS) ---
             tournament: {
                 activeId: null,
-
                 create: () => {
                     const id = Math.floor(1000 + Math.random() * 9000);
-                    const newTourney = {
-                        id: id,
-                        status: 'Open',
-                        players: [], 
-                        rounds: [],
-                        currentRound: 0,
-                        prizePool: 0 // Starts at 0
+                    const t = { 
+                        id, 
+                        status: 'Open', 
+                        prizePool: 0, 
+                        players: [] // NO BOTS - Empty start
                     };
-                    
-                    // Add bots to fill space for demo
-                    for(let i=0; i<3; i++) {
-                        newTourney.players.push({ id: 'bot_'+i, name: 'Bot User '+i, score: 0, opponents: [] });
-                    }
-
-                    const lobbies = Store.get('lobbies', []);
-                    lobbies.push(newTourney);
-                    Store.set('lobbies', lobbies);
+                    const list = Store.get('lobbies', []);
+                    list.push(t);
+                    Store.set('lobbies', list);
                     app.tournament.join(id);
                 },
+                join: (id) => {
+                    const list = Store.get('lobbies', []);
+                    const t = list.find(x => x.id === id);
+                    if(!t) return;
 
-                renderList: () => {
-                    const lobbies = Store.get('lobbies', []);
-                    const list = document.getElementById('lobbyList');
-                    list.innerHTML = '';
-
-                    if(lobbies.length === 0) {
-                        list.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">No active tournaments. Create one!</div>';
-                        return;
+                    // Add self if not exists
+                    if(!t.players.some(p => p.id === app.user.id)) {
+                        t.players.push({ id: app.user.id, name: app.user.name, score: 0 });
+                        Store.set('lobbies', list);
                     }
-
-                    lobbies.forEach(t => {
-                        const isJoined = t.players.some(p => p.id === app.user.id);
-                        list.innerHTML += `
-                            <div class="glass-card p-5 rounded-xl border-l-4 ${isJoined ? 'border-green-500' : 'border-blue-500'}">
-                                <div class="flex justify-between items-start mb-2">
-                                    <span class="font-bold text-lg">Swiss Cup #${t.id}</span>
-                                    <span class="text-xs bg-gray-100 px-2 py-1 rounded uppercase font-bold text-gray-500">${t.status}</span>
+                    
+                    app.tournament.activeId = id;
+                    app.router.navigate('tournament');
+                    app.tournament.renderDetails();
+                },
+                renderList: () => {
+                    const list = Store.get('lobbies', []);
+                    const container = document.getElementById('lobbyList');
+                    container.innerHTML = '';
+                    if(list.length === 0) container.innerHTML = '<div class="text-gray-400">No tournaments yet.</div>';
+                    
+                    list.forEach(t => {
+                        container.innerHTML += `
+                            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                                <div class="flex justify-between mb-2">
+                                    <span class="font-bold text-lg">#${t.id}</span>
+                                    <span class="text-green-600 font-bold">₹${t.prizePool}</span>
                                 </div>
-                                <div class="flex justify-between text-sm text-gray-500 mb-4">
-                                    <span>${t.players.length} Players</span>
-                                    <span class="text-green-600 font-bold">Pool: ₹${t.prizePool}</span>
-                                </div>
-                                <button onclick="app.tournament.join(${t.id})" class="w-full py-2 rounded-lg font-medium transition ${isJoined ? 'bg-green-100 text-green-700' : 'bg-slate-800 text-white hover:bg-slate-700'}">
-                                    ${isJoined ? 'Enter Lobby' : 'Join Now'}
-                                </button>
+                                <div class="text-sm text-gray-500 mb-4">${t.players.length} Players joined</div>
+                                <button onclick="app.tournament.join(${t.id})" class="w-full bg-slate-900 text-white py-2 rounded-lg hover:bg-slate-700">Join</button>
                             </div>
                         `;
                     });
                 },
-
-                join: (tId) => {
-                    const lobbies = Store.get('lobbies', []);
-                    const tIndex = lobbies.findIndex(x => x.id === tId);
-                    if (tIndex === -1) return;
-                    
-                    const t = lobbies[tIndex];
-                    const isJoined = t.players.some(p => p.id === app.user.id);
-
-                    if (!isJoined) {
-                        t.players.push({ id: app.user.id, name: app.user.name, score: 0, opponents: [] });
-                        Store.set('lobbies', lobbies);
-                    }
-
-                    app.tournament.activeId = tId;
-                    app.router.navigate('tournament');
-                    app.tournament.renderDetails();
-                },
-
-                processPayment: () => {
-                    // Simulate API Call
-                    const btn = document.getElementById('payBtn');
-                    const origContent = btn.innerHTML;
-                    btn.disabled = true;
-                    btn.innerHTML = '<div class="spinner"></div>';
-                    
-                    setTimeout(() => {
-                        // Success Logic
-                        const lobbies = Store.get('lobbies', []);
-                        const t = lobbies.find(x => x.id === app.tournament.activeId);
-                        if (t) {
-                            t.prizePool += 10;
-                            Store.set('lobbies', lobbies);
-                        }
-                        
-                        document.getElementById('paymentModal').classList.add('hidden');
-                        document.getElementById('upiInput').value = ''; // clear
-                        app.tournament.renderDetails();
-                        
-                        btn.disabled = false;
-                        btn.innerHTML = origContent;
-                        alert("Payment Verified! Prize Pool Updated.");
-                    }, 1500);
-                },
-
                 renderDetails: () => {
-                    const lobbies = Store.get('lobbies', []);
-                    const t = lobbies.find(x => x.id === app.tournament.activeId);
+                    const list = Store.get('lobbies', []);
+                    const t = list.find(x => x.id === app.tournament.activeId);
                     if(!t) return;
 
                     document.getElementById('tViewId').innerText = t.id;
-                    document.getElementById('tViewStatus').innerText = t.status;
                     document.getElementById('tPrizePool').innerText = '₹' + t.prizePool;
-
-                    // 1. Render Standings (Sorted by Score)
-                    const sorted = [...t.players].sort((a,b) => b.score - a.score);
+                    
                     const tbody = document.getElementById('tStandingsBody');
                     tbody.innerHTML = '';
-                    sorted.forEach((p, idx) => {
-                        tbody.innerHTML += `
-                            <tr class="border-b border-gray-100 last:border-0 hover:bg-white/40 ${p.id === app.user.id ? 'bg-blue-50/50 font-bold' : ''}">
-                                <td class="px-4 py-3 text-gray-500">${idx+1}</td>
-                                <td class="px-4 py-3">${p.name} ${p.id === app.user.id ? '(You)' : ''}</td>
-                                <td class="px-4 py-3 text-center text-gray-500">${p.opponents.length}</td>
-                                <td class="px-4 py-3 text-right font-mono">${p.score}</td>
-                            </tr>
-                        `;
-                    });
-
-                    // 2. Play Action Button
-                    const actionArea = document.getElementById('playActionArea');
-                    actionArea.innerHTML = `
-                        <div class="mb-2 text-gray-500">Ready for next round?</div>
-                        <button onclick="app.game.findMatch()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold py-3 rounded-xl shadow-lg shadow-blue-500/30 transition animate-pulse">
-                            <i class="fa-solid fa-gamepad mr-2"></i> Play Next Match
-                        </button>
-                    `;
+                    
+                    if(t.players.length === 0) {
+                        document.getElementById('emptyState').classList.remove('hidden');
+                    } else {
+                        document.getElementById('emptyState').classList.add('hidden');
+                        t.players.sort((a,b) => b.score - a.score).forEach(p => {
+                            tbody.innerHTML += `
+                                <tr class="border-b border-gray-100 last:border-0 ${p.id === app.user.id ? 'bg-blue-50 font-bold' : ''}">
+                                    <td class="px-4 py-3">${p.name}</td>
+                                    <td class="px-4 py-3 text-right">${p.score}</td>
+                                </tr>
+                            `;
+                        });
+                    }
+                },
+                processPayment: () => {
+                    const btn = document.getElementById('payBtn');
+                    const original = btn.innerHTML;
+                    btn.innerHTML = 'Processing...';
+                    setTimeout(() => {
+                        const list = Store.get('lobbies', []);
+                        const t = list.find(x => x.id === app.tournament.activeId);
+                        if(t) {
+                            t.prizePool += 10;
+                            Store.set('lobbies', list);
+                        }
+                        document.getElementById('paymentModal').classList.add('hidden');
+                        document.getElementById('upiInput').value = '';
+                        app.tournament.renderDetails();
+                        btn.innerHTML = original;
+                        alert("Added ₹10 to pool!");
+                    }, 1000);
                 }
             },
 
-            // --- GAME LOGIC (ONLINE SIMULATION) ---
             game: {
-                engine: null, // Chess.js
-                board: null,  // Chessboard.js
-                id: null,     // Unique Match ID
+                engine: null,
+                board: null,
+                gameId: null,
                 myColor: 'w',
                 
                 findMatch: () => {
-                    // 1. Create Ticket
-                    const ticket = {
-                        tId: app.tournament.activeId,
-                        pId: app.user.id,
-                        pName: app.user.name,
-                        time: Date.now()
-                    };
-                    Store.set('matchmaking_' + app.user.id, ticket);
-
-                    // 2. UI Feedback
-                    const btn = document.querySelector('#playActionArea button');
-                    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Searching Online...';
+                    const btn = document.getElementById('findMatchBtn');
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Searching...';
                     btn.disabled = true;
 
-                    setTimeout(() => {
-                        // 3. Scan for opponents (Poll localStorage)
-                        let found = false;
-                        let opponent = null;
+                    // 1. Post Ticket
+                    const ticket = { tId: app.tournament.activeId, pId: app.user.id, pName: app.user.name };
+                    Store.set('ticket_' + app.user.id, ticket);
 
-                        for (let i = 0; i < localStorage.length; i++) {
-                            const key = localStorage.key(i);
-                            if (key.startsWith('chess_matchmaking_') && key !== 'chess_matchmaking_' + app.user.id) {
-                                const other = JSON.parse(localStorage.getItem(key));
-                                if (other.tId === app.tournament.activeId) {
-                                    opponent = other;
-                                    found = true;
+                    // 2. Poll for opponent
+                    let attempts = 0;
+                    const interval = setInterval(() => {
+                        attempts++;
+                        let found = null;
+                        
+                        // Check local storage for other tickets
+                        for(let i=0; i<localStorage.length; i++) {
+                            const k = localStorage.key(i);
+                            if(k.startsWith(DB_PREFIX + 'ticket_') && !k.includes(app.user.id)) {
+                                const other = JSON.parse(localStorage.getItem(k));
+                                if(other.tId === app.tournament.activeId) {
+                                    found = other;
                                     break;
                                 }
                             }
                         }
 
-                        if (found) {
-                            app.game.initOnline(opponent);
-                        } else {
-                            // Match with Random Bot
-                            const lobbies = Store.get('lobbies', []);
-                            const t = lobbies.find(x => x.id === app.tournament.activeId);
-                            const bot = t.players.find(p => p.id.startsWith('bot_') && !p.opponents.includes(app.user.id));
-                            
-                            if (bot) {
-                                app.game.initBot(bot);
-                            } else {
-                                alert("Waiting for other players to join...");
-                                Store.set('matchmaking_' + app.user.id, null); // Cancel ticket
-                                app.tournament.renderDetails();
-                            }
+                        if(found) {
+                            clearInterval(interval);
+                            Store.remove('ticket_' + app.user.id);
+                            Store.remove('ticket_' + found.pId);
+                            app.game.start(found);
+                        } else if(attempts > 30) {
+                            // Timeout
+                            clearInterval(interval);
+                            Store.remove('ticket_' + app.user.id);
+                            btn.innerHTML = 'Find Opponent';
+                            btn.disabled = false;
+                            alert("No players found. Try opening a second tab!");
                         }
-                    }, 1500);
+                    }, 1000);
                 },
 
-                initOnline: (opp) => {
-                    // Clean tickets
-                    localStorage.removeItem('chess_matchmaking_' + app.user.id);
-                    localStorage.removeItem('chess_matchmaking_' + opp.pId);
-
-                    // Determine Game ID (Sort IDs to ensure both peers get same Game ID)
+                start: (opp) => {
+                    // Sort IDs to ensure same GameID
                     const ids = [app.user.id, opp.pId].sort();
-                    const gameId = `game_${app.tournament.activeId}_${ids[0]}_${ids[1]}`;
+                    const gId = `game_${app.tournament.activeId}_${ids[0]}_${ids[1]}`;
                     
-                    app.game.id = gameId;
-                    app.game.myColor = (app.user.id === ids[0]) ? 'w' : 'b'; 
-                    
-                    // Init Shared State
-                    if (!Store.get(gameId, null)) {
-                        Store.set(gameId, {
+                    app.game.gameId = gId;
+                    app.game.myColor = (app.user.id === ids[0]) ? 'w' : 'b';
+
+                    // Init Game State
+                    if(!Store.get(gId)) {
+                        Store.set(gId, {
                             fen: 'start',
-                            pgn: [],
                             turn: 'w',
+                            pgn: [],
                             white: ids[0] === app.user.id ? app.user.name : opp.pName,
-                            black: ids[0] === app.user.id ? opp.pName : app.user.name,
-                            result: null
+                            black: ids[0] === app.user.id ? opp.pName : app.user.name
                         });
                     }
 
-                    app.game.launch(opp.pName, 'Online');
-                },
-
-                initBot: (bot) => {
-                     localStorage.removeItem('chess_matchmaking_' + app.user.id);
-                     app.game.id = `game_local_${Date.now()}`;
-                     app.game.myColor = 'w';
-                     // Mock state for bot match
-                     Store.set(app.game.id, { fen: 'start', pgn: [], turn: 'w', white: app.user.name, black: bot.name, result: null, isBot: true });
-                     app.game.launch(bot.name, 'Bot (Easy)');
-                },
-
-                launch: (oppName, status) => {
-                    // Show Overlay
-                    document.getElementById('overlayOpponent').innerText = oppName;
-                    document.getElementById('matchFoundOverlay').classList.remove('hidden');
-
+                    document.getElementById('overlayOpponent').innerText = opp.pName;
+                    document.getElementById('matchOverlay').classList.remove('hidden');
+                    
                     setTimeout(() => {
-                        document.getElementById('matchFoundOverlay').classList.add('hidden');
+                        document.getElementById('matchOverlay').classList.add('hidden');
                         app.router.navigate('game');
                         
-                        document.getElementById('gameOpponentName').innerText = oppName;
-                        document.getElementById('gameOpponentStatus').innerText = status;
-                        document.getElementById('gameSelfName').innerText = app.user.name + (app.game.myColor === 'w' ? ' (White)' : ' (Black)');
+                        document.getElementById('gameOpponentName').innerText = opp.pName;
+                        document.getElementById('gameSelfName').innerText = app.user.name + (app.game.myColor==='w'?' (White)':' (Black)');
 
+                        // Setup Board
                         app.game.engine = new Chess();
-                        
-                        // Board Config
-                        const config = {
+                        app.game.board = Chessboard('myBoard', {
                             draggable: true,
                             position: 'start',
                             orientation: app.game.myColor === 'w' ? 'white' : 'black',
+                            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png', // FIXED IMAGE PATH
                             onDragStart: app.game.onDragStart,
                             onDrop: app.game.onDrop,
-                            onSnapEnd: app.game.onSnapEnd
-                        };
+                            onSnapEnd: () => app.game.board.position(app.game.engine.fen())
+                        });
 
-                        app.game.board = Chessboard('myBoard', config);
-                        $(window).resize(app.game.board.resize);
+                        // Make sure resize happens for layout
+                        setTimeout(() => app.game.board.resize(), 200);
+                        window.addEventListener('resize', app.game.board.resize);
 
-                        // If resuming or Black, check state
-                        app.game.syncFromStorage(app.game.id, JSON.stringify(Store.get(app.game.id, null)));
-
-                    }, 2000);
+                    }, 1500);
                 },
 
                 onDragStart: (source, piece) => {
                     if (app.game.engine.game_over()) return false;
-                    // Strict turn enforcement
                     if ((app.game.engine.turn() === 'w' && piece.search(/^b/) !== -1) ||
                         (app.game.engine.turn() === 'b' && piece.search(/^w/) !== -1)) {
                         return false;
                     }
-                    if (app.game.engine.turn() !== app.game.myColor) return false;
+                    if(app.game.engine.turn() !== app.game.myColor) return false;
                 },
 
                 onDrop: (source, target) => {
-                    const move = app.game.engine.move({
-                        from: source,
-                        to: target,
-                        promotion: 'q'
-                    });
+                    const move = app.game.engine.move({ from: source, to: target, promotion: 'q' });
+                    if(move === null) return 'snapback';
 
-                    if (move === null) return 'snapback';
-
-                    // Update Storage (Broadcast Move)
-                    const state = Store.get(app.game.id, {});
+                    const state = Store.get(app.game.gameId, {});
                     state.fen = app.game.engine.fen();
                     state.pgn = app.game.engine.history();
-                    state.turn = app.game.engine.turn();
-                    Store.set(app.game.id, state); 
-
-                    app.game.updateStatus();
-
-                    // If Bot, reply
-                    if (state.isBot && !app.game.engine.game_over()) {
-                        setTimeout(() => {
-                            const moves = app.game.engine.moves();
-                            const rMove = moves[Math.floor(Math.random() * moves.length)];
-                            app.game.engine.move(rMove);
-                            app.game.board.position(app.game.engine.fen());
-                            
-                            state.fen = app.game.engine.fen();
-                            state.pgn = app.game.engine.history();
-                            state.turn = app.game.engine.turn();
-                            Store.set(app.game.id, state);
-                            app.game.updateStatus();
-                        }, 800);
-                    }
+                    Store.set(app.game.gameId, state);
+                    
+                    app.game.updateUI();
                 },
 
-                onSnapEnd: () => {
-                    app.game.board.position(app.game.engine.fen());
-                },
-
-                syncFromStorage: (key, valStr) => {
-                    if (key !== app.game.id) return;
+                sync: (key, valStr) => {
+                    // Called via storage event
+                    if(key !== DB_PREFIX + app.game.gameId) return;
                     const val = JSON.parse(valStr);
-                    if (!val) return;
-
-                    // Update local engine
                     app.game.engine.load(val.fen);
                     app.game.board.position(val.fen);
-                    app.game.updateStatus();
-
-                    // Check result
-                    if (val.result) {
-                        alert("Game Over: " + val.result);
-                        app.game.endGame(val.result);
-                    }
+                    app.game.updateUI();
                 },
 
-                updateStatus: () => {
-                    // Update PGN UI
-                    const history = app.game.engine.history();
+                updateUI: () => {
+                    const hist = app.game.engine.history();
                     let html = '';
-                    for(let i=0; i<history.length; i+=2) {
-                        html += `<div><span class="text-gray-400 mr-2">${(i/2)+1}.</span>${history[i]} ${history[i+1] || ''}</div>`;
+                    for(let i=0; i<hist.length; i+=2) {
+                        html += `<div class="flex justify-between text-xs border-b border-gray-200 py-1">
+                            <span class="w-6 text-gray-400">${(i/2)+1}.</span>
+                            <span class="font-bold w-12">${hist[i]}</span>
+                            <span class="font-bold w-12">${hist[i+1]||''}</span>
+                        </div>`;
                     }
                     document.getElementById('pgnContainer').innerHTML = html;
-                    document.getElementById('pgnContainer').scrollTop = document.getElementById('pgnContainer').scrollHeight;
+                    document.getElementById('pgnContainer').scrollTop = 9999;
 
-                    // Win Condition (Local Check)
-                    if (app.game.engine.game_over()) {
-                        let result = 'draw';
-                        if (app.game.engine.in_checkmate()) {
-                            const winnerColor = app.game.engine.turn() === 'w' ? 'black' : 'white';
-                            result = winnerColor; 
-                        }
-                        
-                        const state = Store.get(app.game.id, {});
-                        if (!state.result) {
-                            state.result = result;
-                            Store.set(app.game.id, state);
-                            app.game.endGame(result);
-                        }
+                    if(app.game.engine.game_over()) {
+                        alert("Game Over!");
+                        app.game.resign(); // Simple exit for demo
                     }
                 },
 
                 resign: () => {
-                    if(confirm("Resign match?")) {
-                        const winner = app.game.myColor === 'w' ? 'black' : 'white';
-                        const state = Store.get(app.game.id, {});
-                        state.result = winner;
-                        Store.set(app.game.id, state);
-                        app.game.endGame(winner);
-                    }
-                },
-
-                endGame: (result) => {
-                    // Update Tournament Data
-                    const lobbies = Store.get('lobbies', []);
-                    const t = lobbies.find(x => x.id === app.tournament.activeId);
-                    
-                    const iAmWhite = app.game.myColor === 'w';
-                    const whiteWon = result === 'white';
-                    const draw = result === 'draw';
-
-                    let myPoints = 0;
-                    if (draw) myPoints = 0.5;
-                    else if ((iAmWhite && whiteWon) || (!iAmWhite && !whiteWon)) myPoints = 1;
-
-                    // Update My Score
-                    const me = t.players.find(p => p.id === app.user.id);
-                    if (me) {
-                        me.score += myPoints;
-                        me.opponents.push('played'); 
-                    }
-                    
-                    Store.set('lobbies', lobbies);
-                    
-                    // Update User Profile Stats
-                    const u = Store.get('currentUser');
-                    u.played++;
-                    if (myPoints === 1) u.wins++;
-                    Store.set('currentUser', u);
-                    app.user = u; // sync memory
-                    
-                    setTimeout(() => {
+                    if(confirm("Exit match?")) {
                         app.router.back();
-                        app.tournament.renderDetails();
-                    }, 1000);
+                    }
                 }
             }
         };
 
-        // Init
-        window.addEventListener('DOMContentLoaded', app.init);
+        // Boot
+        document.addEventListener('DOMContentLoaded', app.init);
 
     </script>
 </body>
