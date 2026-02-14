@@ -3,512 +3,261 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChessSkill - Mobile PvP</title>
-
+    <title>ChessSkill - Live</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
     <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background: #f0f2f5;
-            color: #1e293b;
-            overscroll-behavior: none; /* Prevent pull-to-refresh on mobile */
-        }
-
-        /* Glass Cards */
-        .glass {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Mobile Board Optimization */
-        #board-container {
-            width: 100%;
-            max-width: 450px; /* Tablet/Desktop limit */
-            aspect-ratio: 1/1;
-            margin: 0 auto;
-            touch-action: none; /* Critical for mobile dragging */
-        }
-
-        /* Highlight classes */
-        .highlight-square {
-            box-shadow: inset 0 0 3px 3px rgba(255, 255, 0, 0.5);
-        }
-        .highlight-move {
-            box-shadow: inset 0 0 3px 3px rgba(0, 255, 0, 0.5);
-        }
-
-        /* Spinner */
-        .loader {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #3b82f6;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
-<body class="flex flex-col h-[100dvh]">
+<body class="flex flex-col h-[100dvh] bg-slate-50 font-['Inter']">
 
-    <div id="screen-auth" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-100 p-4">
-        <div class="glass w-full max-w-sm p-8 rounded-2xl shadow-xl text-center">
-            <div class="w-16 h-16 bg-blue-600 rounded-2xl mx-auto flex items-center justify-center text-white text-3xl shadow-lg mb-6">
-                <i class="fa-solid fa-chess"></i>
+    <div id="screen-auth" class="fixed inset-0 z-50 flex items-center justify-center bg-white p-6">
+        <div class="w-full max-w-sm text-center">
+            <div class="mb-8">
+                <i class="fa-solid fa-chess-knight text-5xl text-blue-600"></i>
+                <h1 class="text-3xl font-bold text-slate-900 mt-4">ChessSkill</h1>
+                <p class="text-slate-500 mt-2">Competitive P2P Chess Platform</p>
             </div>
-            <h1 class="text-2xl font-bold text-gray-800 mb-2">ChessSkill</h1>
-            <p class="text-gray-500 mb-8 text-sm">Real-time P2P Chess Platform</p>
-            
-            <form id="authForm" class="space-y-4">
-                <input type="text" id="username" required class="w-full px-5 py-3.5 rounded-xl bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center font-bold text-lg" placeholder="Enter Username">
-                <button type="submit" class="w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition-transform">
-                    Start Playing
-                </button>
-            </form>
+
+            <div id="google_btn_container" class="flex justify-center min-h-[44px]"></div>
+
+            <p class="text-xs text-gray-400 mt-8">
+                Secure Login by Google
+            </p>
         </div>
     </div>
 
-    <header class="bg-white border-b border-gray-200 h-14 flex items-center justify-between px-4 shrink-0 hidden" id="mainHeader">
-        <div class="flex items-center gap-2 font-bold text-gray-800">
+    <header id="app-header" class="hidden h-16 bg-white border-b flex items-center justify-between px-4">
+        <div class="font-bold text-lg text-slate-800 flex items-center gap-2">
             <i class="fa-solid fa-chess-knight text-blue-600"></i> ChessSkill
         </div>
         <div class="flex items-center gap-3">
-            <div class="bg-gray-100 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2">
-                <div class="w-2 h-2 rounded-full bg-green-500"></div>
-                <span id="displayUser">Guest</span>
+            <div class="flex items-center gap-2 bg-slate-100 pr-3 py-1 pl-1 rounded-full">
+                <img id="user-pic" src="" class="w-8 h-8 rounded-full">
+                <span id="user-name" class="text-sm font-bold text-slate-700 truncate max-w-[80px]">User</span>
             </div>
+            <button onclick="app.auth.logout()" class="text-slate-400 hover:text-red-500"><i class="fa-solid fa-power-off"></i></button>
         </div>
     </header>
 
-    <main id="mainContent" class="flex-1 overflow-y-auto p-4 hidden">
-        
-        <div id="view-dashboard" class="max-w-md mx-auto space-y-6">
-            
-            <div class="glass p-5 rounded-2xl flex justify-between items-center bg-gradient-to-r from-slate-800 to-slate-900 text-white">
+    <main id="view-dashboard" class="hidden flex-1 p-4 overflow-y-auto">
+        <div class="max-w-md mx-auto space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between">
                 <div>
-                    <p class="text-xs opacity-70 uppercase tracking-wider">Your Rating</p>
-                    <p class="text-3xl font-bold">1200</p>
+                    <p class="text-xs font-bold text-slate-400 uppercase">Rating</p>
+                    <p class="text-2xl font-bold text-slate-800">1200</p>
                 </div>
                 <div class="text-right">
-                    <p class="text-xs opacity-70 uppercase tracking-wider">Matches</p>
-                    <p class="text-xl font-bold" id="statsMatches">0</p>
+                    <p class="text-xs font-bold text-slate-400 uppercase">Pool</p>
+                    <p class="text-2xl font-bold text-green-600">₹<span id="pool-display">150</span></p>
                 </div>
             </div>
 
-            <div>
-                <h2 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-                    <i class="fa-solid fa-trophy text-yellow-500"></i> Active Tournament
-                </h2>
-                
-                <div class="glass p-5 rounded-2xl border-l-4 border-green-500 relative overflow-hidden">
-                    <div class="flex justify-between items-start mb-4 relative z-10">
-                        <div>
-                            <h3 class="font-bold text-lg">Swiss Cup #101</h3>
-                            <p class="text-xs text-gray-500">Entry: Free • Prize Pool: ₹<span id="poolAmount">0</span></p>
-                        </div>
-                        <span class="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded uppercase">Live</span>
-                    </div>
-
-                    <div class="space-y-3 relative z-10">
-                        <button onclick="app.match.find()" id="btnFindMatch" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-blue-500/30 active:scale-95 transition-transform flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-bolt"></i> Find Match
-                        </button>
-                        
-                        <button onclick="app.payment.open()" class="w-full bg-white text-gray-700 border border-gray-200 py-3 rounded-xl font-bold active:bg-gray-50 transition flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-coins text-yellow-500"></i> Bet ₹10 (Boost Pool)
-                        </button>
-                    </div>
-                </div>
+            <div class="space-y-3">
+                <button onclick="app.match.find()" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-bolt"></i> Play Now
+                </button>
+                <button onclick="alert('Payment Gateway Integration Required')" class="w-full py-4 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-plus text-green-600"></i> Add Funds
+                </button>
             </div>
-
-            <div class="text-center text-xs text-gray-400 mt-8">
-                Open this page in a second tab to test multiplayer.
+            
+            <div class="bg-blue-50 p-4 rounded-xl text-xs text-blue-800 border border-blue-100">
+                <strong>Tip:</strong> Open this link on another device or tab to test multiplayer pairing.
             </div>
         </div>
-
-        <div id="view-game" class="hidden h-full flex flex-col">
-            <div class="flex justify-between items-center mb-2 px-2">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold text-sm">
-                        <i class="fa-solid fa-user"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm font-bold leading-tight" id="gameOpponent">Opponent</p>
-                        <p class="text-[10px] text-gray-500">Rating: 1200</p>
-                    </div>
-                </div>
-                <div class="bg-gray-200 px-2 py-1 rounded text-xs font-mono font-bold">10:00</div>
-            </div>
-
-            <div id="board-container" class="shadow-2xl rounded-lg overflow-hidden bg-gray-300">
-                <div id="myBoard" class="w-full h-full"></div>
-            </div>
-
-            <div class="flex justify-between items-center mt-2 px-2 mb-4">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
-                        <i class="fa-solid fa-user"></i>
-                    </div>
-                    <div>
-                        <p class="text-sm font-bold leading-tight" id="gameSelf">You</p>
-                        <p class="text-[10px] text-gray-500" id="gameColor">White</p>
-                    </div>
-                </div>
-                <div class="bg-gray-200 px-2 py-1 rounded text-xs font-mono font-bold">10:00</div>
-            </div>
-
-            <div class="flex-1 glass rounded-t-2xl p-4 flex flex-col">
-                <p class="text-xs font-bold text-gray-500 uppercase mb-2">Game Log</p>
-                <div id="pgn-log" class="flex-1 overflow-y-auto bg-gray-50 rounded-lg p-2 text-xs font-mono mb-3 border border-gray-200">
-                    <span class="text-gray-400 italic">Game started. Good luck!</span>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-3">
-                    <button onclick="alert('Draw offer sent')" class="py-3 bg-gray-200 rounded-xl font-bold text-gray-600 text-sm">Offer Draw</button>
-                    <button onclick="app.game.quit()" class="py-3 bg-red-50 text-red-600 border border-red-100 rounded-xl font-bold text-sm">Resign</button>
-                </div>
-            </div>
-        </div>
-
     </main>
 
-    <div id="overlay-finding" class="fixed inset-0 z-[60] bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center hidden">
-        <div class="loader w-12 h-12 border-4 border-blue-600 mb-6"></div>
-        <h2 class="text-xl font-bold text-gray-800 animate-pulse">Searching for Opponent...</h2>
-        <p class="text-sm text-gray-500 mt-2">Connecting to peer network</p>
-        <button onclick="app.match.cancel()" class="mt-8 text-red-500 font-bold text-sm hover:underline">Cancel</button>
+    <div id="view-game" class="hidden h-full flex flex-col max-w-md mx-auto p-2">
+        <div class="flex justify-between items-center mb-2 px-2">
+            <span class="font-bold text-slate-600 text-sm"><i class="fa-solid fa-user text-red-500 mr-2"></i>Opponent</span>
+            <span class="bg-slate-200 text-xs px-2 py-1 rounded font-mono font-bold">10:00</span>
+        </div>
+        
+        <div id="board" class="w-full aspect-square bg-slate-300 rounded shadow-xl touch-none"></div>
+        
+        <div class="flex justify-between items-center mt-2 px-2 mb-4">
+            <span class="font-bold text-slate-600 text-sm"><i class="fa-solid fa-user text-blue-500 mr-2"></i>You</span>
+            <span class="bg-slate-200 text-xs px-2 py-1 rounded font-mono font-bold">10:00</span>
+        </div>
+
+        <button onclick="app.game.quit()" class="w-full py-3 bg-red-50 text-red-600 font-bold rounded-xl">Resign Game</button>
     </div>
 
-    <div id="modal-payment" class="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 hidden">
-        <div class="bg-white w-full max-w-sm rounded-2xl p-6 animate-slide-up">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="font-bold text-lg">Secure Payment</h3>
-                <button onclick="document.getElementById('modal-payment').classList.add('hidden')" class="text-gray-400"><i class="fa-solid fa-times"></i></button>
-            </div>
-            <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-4">
-                <p class="text-xs text-blue-600 font-bold uppercase">Amount to Pay</p>
-                <p class="text-2xl font-bold text-blue-900">₹10.00</p>
-            </div>
-            <input type="text" id="upiId" class="w-full px-4 py-3 border border-gray-200 rounded-xl mb-4 focus:ring-2 focus:ring-green-500 outline-none" placeholder="Enter UPI ID (e.g. user@okicici)">
-            <button onclick="app.payment.submit()" class="w-full bg-green-600 text-white py-3.5 rounded-xl font-bold shadow-lg">Pay Now</button>
-        </div>
+    <div id="overlay-loading" class="hidden fixed inset-0 z-[60] bg-white/90 flex flex-col items-center justify-center">
+        <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <h2 class="font-bold text-xl">Finding Match...</h2>
+        <button onclick="app.match.cancel()" class="mt-8 text-sm font-bold text-slate-500">Cancel</button>
     </div>
 
     <script>
-        // --- CORE LOGIC ---
-        const DB_KEY = 'chess_pro_v3_';
+        /* ----------------------------------------------------
+           YOUR GOOGLE CLIENT ID IS INSERTED BELOW
+           ---------------------------------------------------- */
+        const GOOGLE_CLIENT_ID = "280287916046-j27v4vuthrges1jglndsc2kgef63n4bc.apps.googleusercontent.com"; 
         
+        const DB_KEY = 'chess_v5_';
+
+        // --- APP LOGIC ---
         const app = {
             user: null,
-            pool: 0,
             
             init: () => {
-                // Check Auth
+                // Initialize Google Sign-In Button
+                window.onload = function () {
+                    if(typeof google !== 'undefined') {
+                        google.accounts.id.initialize({
+                            client_id: GOOGLE_CLIENT_ID,
+                            callback: (response) => {
+                                // Decode JWT
+                                const payload = JSON.parse(atob(response.credential.split('.')[1]));
+                                app.auth.login(payload);
+                            }
+                        });
+                        google.accounts.id.renderButton(
+                            document.getElementById("google_btn_container"),
+                            { theme: "outline", size: "large", width: "250" } 
+                        );
+                    }
+                };
+
+                // Check Session
                 const saved = localStorage.getItem(DB_KEY + 'user');
-                if(saved) {
+                if (saved) {
                     app.user = JSON.parse(saved);
                     app.ui.showDashboard();
-                } else {
-                    document.getElementById('screen-auth').classList.remove('hidden');
                 }
 
-                // Auth Form
-                document.getElementById('authForm').addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    const name = document.getElementById('username').value.trim();
-                    if(!name) return;
-                    app.user = { id: 'u_' + Date.now(), name: name };
+                // Multiplayer Listener
+                window.addEventListener('storage', (e) => {
+                    if (e.key && e.key.startsWith(DB_KEY + 'game_')) app.game.onRemoteMove(e.newValue);
+                    if (e.key === DB_KEY + 'match_' + app.user?.sub) app.match.onFound(JSON.parse(e.newValue));
+                });
+            },
+
+            auth: {
+                login: (googleUser) => {
+                    app.user = googleUser;
                     localStorage.setItem(DB_KEY + 'user', JSON.stringify(app.user));
                     app.ui.showDashboard();
-                });
-
-                // Global Storage Listener (For Game Moves & Pairing)
-                window.addEventListener('storage', (e) => {
-                    if(e.key && e.key.startsWith(DB_KEY + 'game_')) {
-                        app.game.onRemoteMove(e.newValue);
-                    }
-                    if(e.key === DB_KEY + 'match_found_' + app.user?.id) {
-                        app.match.onMatchFound(JSON.parse(e.newValue));
-                    }
-                });
+                },
+                logout: () => {
+                    localStorage.removeItem(DB_KEY + 'user');
+                    location.reload();
+                }
             },
 
             ui: {
                 showDashboard: () => {
                     document.getElementById('screen-auth').classList.add('hidden');
-                    document.getElementById('mainHeader').classList.remove('hidden');
-                    document.getElementById('mainContent').classList.remove('hidden');
-                    document.getElementById('displayUser').innerText = app.user.name;
-                    document.getElementById('poolAmount').innerText = app.pool;
+                    document.getElementById('app-header').classList.remove('hidden');
+                    document.getElementById('app-header').classList.add('flex');
+                    document.getElementById('view-dashboard').classList.remove('hidden');
+                    
+                    document.getElementById('user-name').innerText = app.user.name;
+                    document.getElementById('user-pic').src = app.user.picture;
                 },
                 showGame: () => {
                     document.getElementById('view-dashboard').classList.add('hidden');
                     document.getElementById('view-game').classList.remove('hidden');
-                    document.getElementById('overlay-finding').classList.add('hidden');
+                    document.getElementById('overlay-loading').classList.add('hidden');
                 },
-                showHome: () => {
+                reset: () => {
                     document.getElementById('view-game').classList.add('hidden');
                     document.getElementById('view-dashboard').classList.remove('hidden');
-                    // Reset Board UI
                     if(app.game.board) app.game.board.destroy();
                 }
             },
 
-            // --- MATCHMAKING SYSTEM (Corrected) ---
             match: {
                 timer: null,
-                
                 find: () => {
-                    document.getElementById('overlay-finding').classList.remove('hidden');
+                    document.getElementById('overlay-loading').classList.remove('hidden');
+                    // Look for open lobby not owned by me
+                    const openKey = Object.keys(localStorage).find(k => k.startsWith(DB_KEY + 'lobby_') && !k.includes(app.user.sub));
                     
-                    // 1. Look for an existing OPEN lobby
-                    const openLobbyKey = app.match.scanForLobby();
-                    
-                    if(openLobbyKey) {
-                        // JOIN EXISTING
-                        const lobby = JSON.parse(localStorage.getItem(openLobbyKey));
-                        app.match.joinLobby(lobby);
+                    if (openKey) {
+                        const lobby = JSON.parse(localStorage.getItem(openKey));
+                        app.match.join(lobby);
                     } else {
-                        // CREATE NEW
-                        app.match.createLobby();
+                        app.match.create();
                     }
                 },
-
-                scanForLobby: () => {
-                    for(let i=0; i<localStorage.length; i++) {
-                        const key = localStorage.key(i);
-                        // Look for a key that starts with "lobby_" and is NOT ours
-                        if(key.startsWith(DB_KEY + 'lobby_') && !key.includes(app.user.id)) {
-                            return key;
-                        }
-                    }
-                    return null;
-                },
-
-                createLobby: () => {
-                    const lobbyId = 'lobby_' + app.user.id;
-                    const lobbyData = {
-                        hostId: app.user.id,
-                        hostName: app.user.name,
-                        status: 'waiting'
-                    };
-                    localStorage.setItem(DB_KEY + lobbyId, JSON.stringify(lobbyData));
-
-                    // Wait for someone to join (poll check)
+                create: () => {
+                    const lobbyId = DB_KEY + 'lobby_' + app.user.sub;
+                    localStorage.setItem(lobbyId, JSON.stringify({ host: app.user.sub, name: app.user.name }));
                     app.match.timer = setInterval(() => {
-                        const current = JSON.parse(localStorage.getItem(DB_KEY + lobbyId));
-                        if(current && current.status === 'paired') {
-                            // Someone joined!
+                        if (!localStorage.getItem(lobbyId)) { 
                             clearInterval(app.match.timer);
-                            localStorage.removeItem(DB_KEY + lobbyId); // Cleanup lobby
-                            app.game.start(current.gameId, 'white', current.guestName);
                         }
-                    }, 500);
+                    }, 1000);
                 },
-
-                joinLobby: (lobby) => {
-                    const gameId = 'game_' + Date.now();
-                    
-                    // Update lobby to notify host
-                    const updatedLobby = {
-                        ...lobby,
-                        status: 'paired',
-                        guestId: app.user.id,
-                        guestName: app.user.name,
-                        gameId: gameId
-                    };
-                    localStorage.setItem(DB_KEY + 'lobby_' + lobby.hostId, JSON.stringify(updatedLobby));
-                    
-                    // Start Game as Black
-                    app.game.start(gameId, 'black', lobby.hostName);
+                join: (lobby) => {
+                    const gameId = DB_KEY + 'game_' + Date.now();
+                    localStorage.setItem(DB_KEY + 'match_' + lobby.host, JSON.stringify({ gameId, opp: app.user.name }));
+                    localStorage.removeItem(DB_KEY + 'lobby_' + lobby.host);
+                    app.game.start(gameId, 'black');
                 },
-
+                onFound: (data) => {
+                    localStorage.removeItem(DB_KEY + 'match_' + app.user.sub);
+                    app.game.start(data.gameId, 'white');
+                },
                 cancel: () => {
-                    document.getElementById('overlay-finding').classList.add('hidden');
+                    document.getElementById('overlay-loading').classList.add('hidden');
                     clearInterval(app.match.timer);
-                    localStorage.removeItem(DB_KEY + 'lobby_' + app.user.id);
+                    localStorage.removeItem(DB_KEY + 'lobby_' + app.user.sub);
                 }
             },
 
-            // --- GAME ENGINE (Mobile Friendly) ---
             game: {
-                chess: null,
-                board: null,
-                id: null,
-                color: null,
-                selectedSquare: null, // For click-to-move
-
-                start: (gameId, color, opponentName) => {
-                    app.game.id = gameId;
-                    app.game.color = color;
+                chess: null, board: null, id: null,
+                start: (id, color) => {
+                    app.game.id = id;
                     app.game.chess = new Chess();
-                    
-                    document.getElementById('gameOpponent').innerText = opponentName;
-                    document.getElementById('gameColor').innerText = color.charAt(0).toUpperCase() + color.slice(1);
                     app.ui.showGame();
-
-                    // Mobile Config: Click handling + Snap speed
-                    const config = {
-                        draggable: false, // Disable drag for cleaner mobile taps
-                        position: 'start',
-                        orientation: color,
-                        pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
-                        showNotation: true
-                    };
-
                     setTimeout(() => {
-                        app.game.board = Chessboard('myBoard', config);
+                        app.game.board = Chessboard('board', {
+                            draggable: true,
+                            position: 'start',
+                            orientation: color,
+                            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+                            onDragStart: (source, piece) => {
+                                if (app.game.chess.game_over()) return false;
+                                if ((app.game.chess.turn() === 'w' && piece.search(/^b/) !== -1) ||
+                                    (app.game.chess.turn() === 'b' && piece.search(/^w/) !== -1)) return false;
+                                if (app.game.chess.turn().charAt(0) !== color.charAt(0)) return false;
+                            },
+                            onDrop: (source, target) => {
+                                const move = app.game.chess.move({ from: source, to: target, promotion: 'q' });
+                                if (!move) return 'snapback';
+                                app.game.broadcast();
+                            }
+                        });
                         $(window).resize(app.game.board.resize);
-                        
-                        // ADD CUSTOM CLICK HANDLER
-                        $('.square-55d63').on('click', app.game.handleSquareClick);
                     }, 100);
                 },
-
-                // --- TAP-TO-MOVE LOGIC ---
-                handleSquareClick: function() {
-                    if (app.game.chess.game_over()) return;
-                    if ((app.game.chess.turn() === 'w' && app.game.color === 'black') ||
-                        (app.game.chess.turn() === 'b' && app.game.color === 'white')) return;
-
-                    const square = $(this).attr('data-square');
-                    
-                    // 1. If highlighting same square, deselect
-                    if (app.game.selectedSquare === square) {
-                        app.game.clearHighlights();
-                        app.game.selectedSquare = null;
-                        return;
-                    }
-
-                    // 2. If nothing selected, try to select a piece
-                    if (!app.game.selectedSquare) {
-                        const piece = app.game.chess.get(square);
-                        if (piece && piece.color === app.game.chess.turn()) {
-                            app.game.selectedSquare = square;
-                            app.game.highlightSquare(square);
-                        }
-                        return;
-                    }
-
-                    // 3. If something selected, try to move there
-                    const move = app.game.chess.move({
-                        from: app.game.selectedSquare,
-                        to: square,
-                        promotion: 'q' // Auto-promote to Queen for simplicity
-                    });
-
-                    if (move) {
-                        // VALID MOVE
-                        app.game.board.position(app.game.chess.fen());
-                        app.game.saveMove();
-                        app.game.updateLog(move);
-                        app.game.clearHighlights();
-                        app.game.selectedSquare = null;
-                    } else {
-                        // INVALID MOVE
-                        // Check if user just clicked another of their own pieces
-                        const piece = app.game.chess.get(square);
-                        if (piece && piece.color === app.game.chess.turn()) {
-                            app.game.selectedSquare = square;
-                            app.game.clearHighlights();
-                            app.game.highlightSquare(square);
-                        } else {
-                            app.game.clearHighlights();
-                            app.game.selectedSquare = null;
-                        }
+                broadcast: () => {
+                    localStorage.setItem(app.game.id, JSON.stringify({ fen: app.game.chess.fen() }));
+                },
+                onRemoteMove: (val) => {
+                    if (!val) return;
+                    const fen = JSON.parse(val).fen;
+                    if (fen !== app.game.chess.fen()) {
+                        app.game.chess.load(fen);
+                        app.game.board.position(fen);
                     }
                 },
-
-                highlightSquare: (square) => {
-                    $('.square-55d63').removeClass('highlight-square');
-                    $('.square-' + square).addClass('highlight-square');
-                },
-
-                clearHighlights: () => {
-                    $('.square-55d63').removeClass('highlight-square');
-                },
-
-                saveMove: () => {
-                    const state = {
-                        fen: app.game.chess.fen(),
-                        pgn: app.game.chess.pgn()
-                    };
-                    localStorage.setItem(DB_KEY + app.game.id, JSON.stringify(state));
-                },
-
-                onRemoteMove: (jsonStr) => {
-                    if(!jsonStr) return;
-                    const state = JSON.parse(jsonStr);
-                    
-                    // If FEN matches current, ignore
-                    if(state.fen === app.game.chess.fen()) return;
-
-                    app.game.chess.load(state.fen);
-                    app.game.board.position(state.fen);
-                    
-                    // Update Log
-                    const history = app.game.chess.history();
-                    const lastMove = history[history.length - 1];
-                    if(lastMove) app.game.updateLog({ san: lastMove }); // Simple log
-
-                    if(app.game.chess.game_over()) {
-                        alert("Game Over!");
-                    }
-                },
-
-                updateLog: (move) => {
-                    const log = document.getElementById('pgn-log');
-                    const moveNum = Math.ceil(app.game.chess.history().length / 2);
-                    const isWhite = app.game.chess.turn() === 'b'; // Logic inverted because turn changed AFTER move
-                    
-                    const span = document.createElement('span');
-                    span.className = "mr-2 inline-block";
-                    span.innerText = (isWhite ? `${moveNum}. ` : '') + move.san;
-                    
-                    log.appendChild(span);
-                    log.scrollTop = log.scrollHeight;
-                },
-
                 quit: () => {
-                    if(confirm("Resign?")) {
-                        app.ui.showHome();
-                        localStorage.removeItem(DB_KEY + app.game.id);
-                    }
-                }
-            },
-
-            // --- PAYMENT (Mock) ---
-            payment: {
-                open: () => document.getElementById('modal-payment').classList.remove('hidden'),
-                submit: () => {
-                    const id = document.getElementById('upiId').value;
-                    if(!id) return alert("Enter UPI ID");
-                    
-                    document.getElementById('modal-payment').classList.add('hidden');
-                    app.pool += 10;
-                    document.getElementById('poolAmount').innerText = app.pool;
-                    alert("Payment Success! Pool boosted.");
+                    if(confirm('Quit?')) app.ui.reset();
                 }
             }
         };
 
-        // Init App
         app.init();
-
     </script>
 </body>
 </html>
